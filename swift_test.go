@@ -16,16 +16,17 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/md5"
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
-
 	"github.com/ncw/swift"
 	"github.com/ncw/swift/swifttest"
 )
@@ -54,11 +55,18 @@ const (
 
 type someTransport struct{ http.Transport }
 
+func MakeConnection() *swift.Connection {
+	return nil
+}
+
 func TestTransport(t *testing.T) {
 	var err error
 	UserName := os.Getenv("SWIFT_API_USER")
 	ApiKey := os.Getenv("SWIFT_API_KEY")
+	Domain := os.Getenv("SWIFT_API_DOMAIN")
 	AuthUrl := os.Getenv("SWIFT_AUTH_URL")
+	Insecure := os.Getenv("SWIFT_AUTH_URL_INSECURE")
+
 	if UserName == "" || ApiKey == "" || AuthUrl == "" {
 		srv, err = swifttest.NewSwiftServer("localhost")
 		if err != nil {
@@ -68,8 +76,17 @@ func TestTransport(t *testing.T) {
 		ApiKey = "swifttest"
 		AuthUrl = srv.AuthURL
 	}
-	tr := &someTransport{Transport: http.Transport{MaxIdleConnsPerHost: 2048}}
+	tr := &someTransport{
+		Transport: http.Transport{
+			MaxIdleConnsPerHost: 2048,
+		},
+	}
+
+	if Insecure {
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true},
+	}
 	ct := swift.Connection{
+		Domain:         Domain,
 		UserName:       UserName,
 		ApiKey:         ApiKey,
 		AuthUrl:        AuthUrl,
@@ -92,7 +109,7 @@ func TestTransport(t *testing.T) {
 }
 
 // The following Test functions are run in order - this one must come before the others!
-func TestAuthenticate(t *testing.T) {
+func TestV1V2Authenticate(t *testing.T) {
 	var err error
 	UserName := os.Getenv("SWIFT_API_USER")
 	ApiKey := os.Getenv("SWIFT_API_KEY")
@@ -106,12 +123,151 @@ func TestAuthenticate(t *testing.T) {
 		ApiKey = "swifttest"
 		AuthUrl = srv.AuthURL
 	}
+	if strings.Contains(AuthUrl, "v3") {
+		return
+	}
 	c = swift.Connection{
 		UserName: UserName,
 		ApiKey:   ApiKey,
 		AuthUrl:  AuthUrl,
 		Tenant:   os.Getenv("SWIFT_TENANT"),
 		TenantId: os.Getenv("SWIFT_TENANT_ID"),
+	}
+	err = c.Authenticate()
+	if err != nil {
+		t.Fatal("Auth failed", err)
+	}
+	if !c.Authenticated() {
+		t.Fatal("Not authenticated")
+	}
+}
+
+func TestV3AuthenticateWithDomainNameAndTenantId(t *testing.T) {
+	var err error
+	UserName := os.Getenv("SWIFT_API_USER")
+	Domain := os.Getenv("SWIFT_API_DOMAIN")
+	ApiKey := os.Getenv("SWIFT_API_KEY")
+	AuthUrl := os.Getenv("SWIFT_AUTH_URL")
+	if UserName == "" || ApiKey == "" || AuthUrl == "" {
+		srv, err = swifttest.NewSwiftServer("localhost")
+		if err != nil {
+			t.Fatal("Failed to create server", err)
+		}
+		UserName = "swifttest"
+		ApiKey = "swifttest"
+		AuthUrl = srv.AuthURL
+	}
+	if !strings.Contains(AuthUrl, "v3") {
+		return
+	}
+	c = swift.Connection{
+		UserName: UserName,
+		Domain:   Domain,
+		ApiKey:   ApiKey,
+		AuthUrl:  AuthUrl,
+		TenantId: os.Getenv("SWIFT_TENANT_ID"),
+	}
+	err = c.Authenticate()
+	if err != nil {
+		t.Fatal("Auth failed", err)
+	}
+	if !c.Authenticated() {
+		t.Fatal("Not authenticated")
+	}
+}
+
+func TestV3AuthenticateWithDomainIdAndTenantId(t *testing.T) {
+	var err error
+	UserName := os.Getenv("SWIFT_API_USER")
+	DomainId := os.Getenv("SWIFT_API_DOMAIN_ID")
+	ApiKey := os.Getenv("SWIFT_API_KEY")
+	AuthUrl := os.Getenv("SWIFT_AUTH_URL")
+	if UserName == "" || ApiKey == "" || AuthUrl == "" {
+		srv, err = swifttest.NewSwiftServer("localhost")
+		if err != nil {
+			t.Fatal("Failed to create server", err)
+		}
+		UserName = "swifttest"
+		ApiKey = "swifttest"
+		AuthUrl = srv.AuthURL
+	}
+	if !strings.Contains(AuthUrl, "v3") {
+		return
+	}
+	c = swift.Connection{
+		UserName: UserName,
+		DomainId: DomainId,
+		ApiKey:   ApiKey,
+		AuthUrl:  AuthUrl,
+		TenantId: os.Getenv("SWIFT_TENANT_ID"),
+	}
+	err = c.Authenticate()
+	if err != nil {
+		t.Fatal("Auth failed", err)
+	}
+	if !c.Authenticated() {
+		t.Fatal("Not authenticated")
+	}
+}
+
+func TestV3AuthenticateWithDomainNameAndTenantName(t *testing.T) {
+	var err error
+	UserName := os.Getenv("SWIFT_API_USER")
+	Domain := os.Getenv("SWIFT_API_DOMAIN")
+	ApiKey := os.Getenv("SWIFT_API_KEY")
+	AuthUrl := os.Getenv("SWIFT_AUTH_URL")
+	if UserName == "" || ApiKey == "" || AuthUrl == "" {
+		srv, err = swifttest.NewSwiftServer("localhost")
+		if err != nil {
+			t.Fatal("Failed to create server", err)
+		}
+		UserName = "swifttest"
+		ApiKey = "swifttest"
+		AuthUrl = srv.AuthURL
+	}
+	if !strings.Contains(AuthUrl, "v3") {
+		return
+	}
+	c = swift.Connection{
+		UserName: UserName,
+		Domain:   Domain,
+		ApiKey:   ApiKey,
+		AuthUrl:  AuthUrl,
+		Tenant:   os.Getenv("SWIFT_TENANT"),
+	}
+	err = c.Authenticate()
+	if err != nil {
+		t.Fatal("Auth failed", err)
+	}
+	if !c.Authenticated() {
+		t.Fatal("Not authenticated")
+	}
+}
+
+func TestV3AuthenticateWithDomainIdAndTenantName(t *testing.T) {
+	var err error
+	UserName := os.Getenv("SWIFT_API_USER")
+	DomainId := os.Getenv("SWIFT_API_DOMAIN_ID")
+	ApiKey := os.Getenv("SWIFT_API_KEY")
+	AuthUrl := os.Getenv("SWIFT_AUTH_URL")
+	if UserName == "" || ApiKey == "" || AuthUrl == "" {
+		srv, err = swifttest.NewSwiftServer("localhost")
+		if err != nil {
+			t.Fatal("Failed to create server", err)
+		}
+		UserName = "swifttest"
+		ApiKey = "swifttest"
+		AuthUrl = srv.AuthURL
+	}
+	if !strings.Contains(AuthUrl, "v3") {
+		return
+	}
+	c = swift.Connection{
+		UserName: UserName,
+		DomainId: DomainId,
+		ApiKey:   ApiKey,
+		AuthUrl:  AuthUrl,
+		Tenant:   os.Getenv("SWIFT_TENANT"),
 	}
 	err = c.Authenticate()
 	if err != nil {

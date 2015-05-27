@@ -34,6 +34,7 @@ Here is a short example from the docs
         UserName: "user",
         ApiKey:   "key",
         AuthUrl:  "auth_url",
+        Domain:   "domain",  // Name of the domain (v3 auth only)
         Tenant:   "tenant",  // Name of the tenant (v2 auth only)
     }
     // Authenticate
@@ -68,6 +69,12 @@ And optionally these if using v2 authentication
 
     export SWIFT_TENANT='TenantName'
     export SWIFT_TENANT_ID='TenantId'
+
+And optionally these if using v3 authentication
+
+    export SWIFT_API_DOMAIN_ID='domain id' 
+    or 
+    export SWIFT_API_DOMAIN='domain name'
 
 Then run the tests with `go test`
 
@@ -105,3 +112,4 @@ Contributors
 - lsowen <lsowen@s1network.com>
 - Sylvain Baubeau <sbaubeau@redhat.com>
 - Chris Kastorff <encryptio@gmail.com>
+- Dai HaoJun <haojun.dai@hp.com>
