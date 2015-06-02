@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	AUTH_METHOD_TOKEN         = "token"
-	AUTH_METHOD_PASSWORD      = "password"
-	INTERFACE_PUBLIC          = "public"
-	INTERFACE_INTERNAL        = "internal"
-	INTERFACE_ADMIN           = "admin"
-	CATALOT_TYPE_OBJECT_STORE = "object-store"
+	v3AuthMethodToken        = "token"
+	v3AuthMethodPassword     = "password"
+	v3InterfacePublic        = "public"
+	v3InterfaceInternal      = "internal"
+	v3InterfaceAdmin         = "admin"
+	v3CatalogTypeObjectStore = "object-store"
 )
 
 // V3 Authentication request
@@ -108,10 +108,10 @@ func (auth *v3Auth) Request(c *Connection) (*http.Request, error) {
 	v3 := v3AuthRequest{}
 
 	if c.UserName == "" {
-		v3.Auth.Identity.Methods = []string{AUTH_METHOD_TOKEN}
+		v3.Auth.Identity.Methods = []string{v3AuthMethodToken}
 		v3.Auth.Identity.Token = &v3AuthToken{Id: c.ApiKey}
 	} else {
-		v3.Auth.Identity.Methods = []string{AUTH_METHOD_PASSWORD}
+		v3.Auth.Identity.Methods = []string{v3AuthMethodPassword}
 		v3.Auth.Identity.Password = &v3AuthPassword{
 			User: v3User{
 				Name:     c.UserName,
@@ -150,6 +150,7 @@ func (auth *v3Auth) Request(c *Connection) (*http.Request, error) {
 	v3i = v3
 
 	body, err := json.Marshal(v3i)
+
 	if err != nil {
 		return nil, err
 	}
@@ -179,11 +180,11 @@ func (auth *v3Auth) endpointUrl(Type string, Internal bool) string {
 		if catalog.Type == Type {
 			for _, endpoint := range catalog.Endpoints {
 				if Internal {
-					if endpoint.Interface == INTERFACE_INTERNAL {
+					if endpoint.Interface == v3InterfaceInternal {
 						return endpoint.Url
 					}
 				} else {
-					if endpoint.Interface == INTERFACE_PUBLIC {
+					if endpoint.Interface == v3InterfacePublic {
 						return endpoint.Url
 					}
 				}
@@ -194,7 +195,7 @@ func (auth *v3Auth) endpointUrl(Type string, Internal bool) string {
 }
 
 func (auth *v3Auth) StorageUrl(Internal bool) string {
-	return auth.endpointUrl(CATALOT_TYPE_OBJECT_STORE, Internal)
+	return auth.endpointUrl(v3CatalogTypeObjectStore, Internal)
 }
 
 func (auth *v3Auth) Token() string {

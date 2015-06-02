@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/md5"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"hash"
