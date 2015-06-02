@@ -72,6 +72,8 @@ And optionally these if using v2 authentication
 
 And optionally these if using v3 authentication
 
+    export SWIFT_TENANT='TenantName'
+    export SWIFT_TENANT_ID='TenantId'
     export SWIFT_API_DOMAIN_ID='domain id'
     export SWIFT_API_DOMAIN='domain name'
 
